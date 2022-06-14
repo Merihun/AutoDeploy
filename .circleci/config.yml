@@ -153,18 +153,17 @@ jobs:
 
   deploy-infrastructure:
     docker:
-      - image: amazon/aws-cli # Docker image here that supports AWS CLI
+      # Docker image here that supports AWS CLI
+      - image: amazon/aws-cli
     steps:
-      # Checkout code from git
-      - checkout
-      # - dependencies
+      - checkout # Checkout code from git
       - run:
           name: Ensure back-end infrastructure exists
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
               --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
               --tags project=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}
       - run:
           name: Ensure front-end infrastructure exist
@@ -174,6 +173,7 @@ jobs:
               --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}
+
       - run:
           name: Add back-end ip to ansible inventory
           command: |
@@ -182,15 +182,16 @@ jobs:
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --output text)
             echo "http://$BACKEND_AWS_PUBLIC_IP:3030" >> .circleci/outputs/backend_url.txt
-            echo "[all]" >> .circleci/ansible/inventory.txt
+            echo "[web]" >> .circleci/ansible/inventory.txt
             echo "$BACKEND_AWS_PUBLIC_IP" >> .circleci/ansible/inventory.txt
             cat .circleci/outputs/backend_url.txt
+      - run: yum -y install tar gzip
       - persist_to_workspace:
           root: ~/
           paths:
-            - project/.circleci/ansible/inventory.txt
             - project/.circleci/outputs/backend_url.txt
-      - destroy-environment:
+            - project/.circleci/ansible/inventory.txt
+      - destroy_environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
 
 workflows:
