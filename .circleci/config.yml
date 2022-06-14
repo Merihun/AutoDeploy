@@ -192,12 +192,23 @@ jobs:
             - project/.circleci/ansible/inventory.txt
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
-
   configure-infrastructure:
     docker:
       - image: python:3.7-alpine3.11
+        environment:
+          NODE_ENV: "production"
+          VERSION: "1"
+          ENVIRONMENT: "production"
+          TYPEORM_CONNECTION: $TYPEORM_CONNECTION
+          TYPEORM_HOST: $TYPEORM_HOST
+          TYPEORM_USERNAME: $TYPEORM_USERNAME
+          TYPEORM_PASSWORD: $TYPEORM_PASSWORD
+          TYPEORM_DATABASE: $TYPEORM_DATABASE
+          TYPEORM_PORT: $TYPEORM_PORT
+          TYPEORM_ENTITIES: $TYPEORM_ENTITIES
     steps:
-      checkout # Checkout code from git
+      - checkout
+      # Add ssh keys with fingerprint
       - add_ssh_keys:
           fingerprints: ["4b:29:bf:f1:57:73:f3:a6:4f:68:31:56:85:4e:69:60"]
       - attach_workspace:
@@ -215,12 +226,9 @@ jobs:
           command: |
             cat ~/project/.circleci/ansible/inventory.txt
             export ANSIBLE_HOST_KEY_CHECKING=False
-            ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/configure-server.yml    
+            ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/configure-server.yml
       # - destroy-environment:
-      #     workflow_id: '${CIRCLE_WORKFLOW_ID:0:7}' 
-      - configure-infrastructure:
-          requires: [deploy-infrastructure]
-
+      #     workflow_id: '${CIRCLE_WORKFLOW_ID:0:7}'
 
 workflows:
   default:
@@ -237,6 +245,8 @@ workflows:
           requires: [build-frontend]
       - deploy-infrastructure:
           requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
           # filters:
           #   branches:
           #     only: [test-feature-branch]
