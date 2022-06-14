@@ -252,9 +252,10 @@ jobs:
           name: Run migrations
           command: |
             cd backend
-            cat .env
-            npm i
-            npm run build
+            # cat .env
+            # npm i
+            # npm run build
+            npm install
             npm run migrations > migrations_dump.txt
             cat migrations_dump.txt
       - run:
@@ -272,8 +273,7 @@ jobs:
             fi
   #     - destroy-environment:
   #         workflow_id: '${CIRCLE_WORKFLOW_ID:0:7}'
-  #     - destroy-environment:
-  #         workflow_id: '${CIRCLE_WORKFLOW_ID:0:7}'
+
   # Here's where you will add some code to rollback on failure
 
 workflows:
