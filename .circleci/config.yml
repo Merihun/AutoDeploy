@@ -79,16 +79,16 @@ jobs:
           name: Back-end build
           working_directory: ./backend
           command: |
-            cd ~/backend
+            cd backend
             npm i
             npm run build
             cp .env dist/.env
             pwd && ls -al
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - project/backend/dist
-            - project/backend/node_modules
+      # - persist_to_workspace:
+      #     root: ~/
+      #     paths:
+      #       - project/backend/dist
+      #       - project/backend/node_modules
       - save_cache:
           key: build-backend
           paths:
