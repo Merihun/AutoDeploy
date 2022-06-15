@@ -225,7 +225,7 @@ jobs:
       - run:
           name: Configure server
           command: |
-            # ls ~/project/.circleci/ansible/roles/deploy/files/
+            ls ~/project/.circleci/ansible/roles/deploy/files/
             cd ~/project/backend
             ansible-galaxy install weareinteractive.environment
             ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/configure-server.yml
