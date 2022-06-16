@@ -374,8 +374,8 @@ jobs:
           command: |
             cd ~/project/backend
             npm install
-            # npm install typescript@latest -g # or use bellow code : 
-            npx --package typescript tsc --init
+            npm install typescript@latest -g # or use bellow code : 
+            # npx --package typescript tsc --init
             npm audit fix --force
             npm run build
             cd ..
