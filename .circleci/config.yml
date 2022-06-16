@@ -301,9 +301,9 @@ jobs:
       #     workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
       # - revert-migrations:
       #     workflow_id: '${CIRCLE_WORKFLOW_ID:0:7}'
-  #     # Here's where you will add some code to rollback on failure
-  #     - destroy-environment:
-  #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      #     # Here's where you will add some code to rollback on failure
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
   # deploy-backend:
   #   docker:
@@ -350,7 +350,7 @@ jobs:
     docker:
       - image: python:3.7-alpine3.11
         environment:
-          NODE_ENV: "local"
+          NODE_ENV: "production"
           VERSION: "1"
           ENVIRONMENT: "production"
           TYPEORM_CONNECTION: $TYPEORM_CONNECTION
@@ -365,21 +365,25 @@ jobs:
       - add_ssh_keys:
           fingerprints: ["1d:b4:d2:cc:c8:a2:8c:98:91:67:8b:86:2c:1b:bf:51"]
       - attach_workspace:
-          at: /root
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update ansible rsync 
-            apk add curl
-            pip3 install awscli
+          at: ~/
+      - restore_cache:
+          keys:
+            - build-backend
+      - dependencies
+      # - run:
+      #     name: Install dependencies
+      #     command: |
+      #       apk add --update ansible nodejs npm tar gzip
       - run:
           name: Deploy backend
           command: |
-            ls /root
-            ls /root/project/backend/
+            cd backend
+            npm install
+            npm run build
+            cd ..
+            tar -C backend -czvf artifact.tar.gz .
             cat ~/project/.circleci/ansible/inventory.txt
             ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/deploy-backend.yml
-      # Here's where you will add some code to rollback on failure
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
