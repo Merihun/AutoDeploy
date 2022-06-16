@@ -306,7 +306,7 @@ jobs:
   #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
   deploy-backend:
-      docker:
+    docker:
       - image: python:3.7-alpine3.11
     steps:
       - checkout
@@ -329,7 +329,7 @@ jobs:
             mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
             mv dist.zip ~/project/.circleci/ansible/roles/deploy/files/
       - add_ssh_keys:
-          fingerprints: [ "1d:b4:d2:cc:c8:a2:8c:98:91:67:8b:86:2c:1b:bf:51" ]
+          fingerprints: ["1d:b4:d2:cc:c8:a2:8c:98:91:67:8b:86:2c:1b:bf:51"]
       - run:
           name: Setup EC2 instance & copy compiled backend to the EC2 instance
           command: |
@@ -337,7 +337,7 @@ jobs:
             cd ~/project/backend
             ansible-galaxy install weareinteractive.environment
             ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/deploy-backend.yml
-      - destroy_environment:
+      - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
       - undo_migrations
 
@@ -387,11 +387,11 @@ jobs:
   #           cat ~/project/.circleci/ansible/inventory.txt
   #           ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/deploy-backend.yml
 
-      # - destroy-environment:
-      #     workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
-      # - undo_migrations
+  # - destroy-environment:
+  #     workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
+  # - undo_migrations
 
-      # - destroy-environment:
+  # - destroy-environment:
 
 workflows:
   default:
