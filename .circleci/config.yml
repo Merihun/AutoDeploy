@@ -321,17 +321,13 @@ jobs:
           name: Build backend app
           command: |
             cd ~/project/backend
-<<<<<<< HEAD
             npm install
             npm install typescript@latest -g # or use bellow code : 
             # npx --package typescript tsc --init
-=======
-            npm i
->>>>>>> 2191820 (added backend fix-4)
             npm audit fix --force
             npm run build
             npm install typescript@latest -g # or use bellow code : 
-            #  npx --package typescript tsc --init
+            # npx --package typescript tsc --init
             cd dist
             cp ../package.json .
             zip -rq dist.zip *
