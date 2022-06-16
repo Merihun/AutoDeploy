@@ -326,8 +326,8 @@ jobs:
             # npx --package typescript tsc --init
             npm audit fix --force
             npm run build
-            npm install typescript@latest -g # or use bellow code : 
-            # npx --package typescript tsc --init
+            # npm install typescript@latest -g # or use bellow code : 
+            npx --package typescript tsc --init
             cd dist
             cp ../package.json .
             zip -rq dist.zip *
