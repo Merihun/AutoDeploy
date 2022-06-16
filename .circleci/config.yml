@@ -336,6 +336,8 @@ jobs:
           command: |
             cd ~/project/backend
             npm install
+            npm install typescript@latest -g
+            npm audit fix
             npm run build
             cd dist
             cp ../package.json .
