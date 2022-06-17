@@ -403,12 +403,9 @@ jobs:
       - run:
           name: Backend smoke test.
           command: |
-            ls 
-            pwd
-            BACKEND_IP=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
-            API_URL="http://${BACKEND_IP}:3030"
-            curl "${API_URL}/api/status"
-            # echo ${API_URL}
+            API_URL=`cat .circleci/outputs/backend_url.txt`
+            echo $API_URL
+            curl -s $API_URL/api/status
       - run:
           name: Frontend smoke test.
           command: |
