@@ -408,12 +408,12 @@ jobs:
             BACKEND_IP=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
             API_URL="http://${BACKEND_IP}:3030"
             curl "${API_URL}/api/status"
-            echo ${API_URL}
+            # echo ${API_URL}
       - run:
           name: Frontend smoke test.
           command: |
             URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com"
-            echo {URL}
+            echo ${URL}
             if curl -s ${URL} | grep "Welcome"
             then
               return 0
