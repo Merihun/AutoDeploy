@@ -363,6 +363,7 @@ jobs:
             API_URL=`cat .circleci/outputs/backend_url.txt`
             echo $API_URL
             curl -s $API_URL/api/status
+            return 0
       - run:
           name: Frontend smoke test.
           command: |
