@@ -345,51 +345,6 @@ jobs:
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
-  # deploy-backend:
-  #   docker:
-  #     - image: python:3.7-alpine3.11
-  #       environment:
-  #         NODE_ENV: "production"
-  #         VERSION: "1"
-  #         ENVIRONMENT: "production"
-  #         TYPEORM_CONNECTION: $TYPEORM_CONNECTION
-  #         TYPEORM_HOST: $TYPEORM_HOST
-  #         TYPEORM_USERNAME: $TYPEORM_USERNAME
-  #         TYPEORM_PASSWORD: $TYPEORM_PASSWORD
-  #         TYPEORM_DATABASE: $TYPEORM_DATABASE
-  #         TYPEORM_PORT: $TYPEORM_PORT
-  #         TYPEORM_ENTITIES: $TYPEORM_ENTITIES
-  #   steps:
-  #     - checkout
-  #     - add_ssh_keys:
-  #         fingerprints: ["1d:b4:d2:cc:c8:a2:8c:98:91:67:8b:86:2c:1b:bf:51"]
-  #     - attach_workspace:
-  #         at: ~/
-  #     - restore_cache:
-  #         keys:
-  #           - build-backend
-  #     # - dependencies
-  #     - run:
-  #         name: Install dependencies
-  #         command: |
-  #           apk add curl
-  #           apk add --upgrade bash
-  #           apk add openssh-client
-  #           apk add --update ansible nodejs npm tar gzip
-  #           pip3 install awscli
-  #     - run:
-  #         name: Deploy backend
-  #         command: |
-  #           cd backend
-  #           # npm install
-  #           # npm run build
-  #           cd ..
-  #           tar -C backend -czvf artifact.tar.gz .
-  #           cat ~/project/.circleci/ansible/inventory.txt
-  #           ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/deploy-backend.yml
-  #     - destroy-environment:
-  #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-
   smoke-test:
     docker:
       - image: python:3.7-alpine3.11
@@ -415,14 +370,14 @@ jobs:
             echo ${URL}
             if curl -s ${URL} | grep "Welcome"
             then
-              return 0
+              return 1
             else
               return 1
             fi
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-      # - revert-migrations:
-      #     workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
   cloudfront-update:
     docker:
