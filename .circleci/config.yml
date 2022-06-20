@@ -205,9 +205,11 @@ jobs:
             cat inventory.txt
             ansible-playbook -i inventory.txt configure-server.yml
       - destroy-environment
+
   run-migrations:
     docker:
-      - image: cimg/node:13.8.0
+      - image: sleavely/node-awscli:14.x
+      # - image: cimg/node:13.8.0
     steps:
       - checkout
       - install_awscli
@@ -226,6 +228,7 @@ jobs:
             fi
       - destroy-environment
       - revert-migrations
+
   deploy-frontend:
     docker:
       - image: cimg/base:stable
@@ -257,6 +260,7 @@ jobs:
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
       - destroy-environment
       - revert-migrations
+
   deploy-backend:
     docker:
       - image: cimg/base:stable
