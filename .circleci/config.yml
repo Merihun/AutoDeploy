@@ -111,11 +111,13 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys: [frontend-build]
+          keys:
+            - frontend-build
       - run:
-          name: Scan frontend dependencies
+          name: Scanning frontend
           command: |
             cd frontend
+            npm install
             npm audit fix --audit-level=critical --force
   scan-backend:
     docker:
