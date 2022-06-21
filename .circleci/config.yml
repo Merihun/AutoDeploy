@@ -556,6 +556,6 @@ workflows:
       - smoke_test_backend:
           requires: [smoke_test_frontend]
       - cloudfront-update:
-          requires: [smoke-test]
+          requires: [smoke_test_frontend, smoke_test_backend]
       - cleanup:
           requires: [cloudfront-update]
