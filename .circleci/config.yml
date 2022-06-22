@@ -313,56 +313,6 @@ jobs:
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
 
-  # deploy-backend:
-  #   docker:
-  #     # Docker image here that supports Ansible
-  #     - image: python:3.7-alpine3.11
-  #   steps:
-  #     # Checkout code from git
-  #     - checkout
-  #     # Add ssh keys with fingerprint
-  #     - add_ssh_keys:
-  #         fingerprints:
-  #           - "1d:b4:d2:cc:c8:a2:8c:98:91:67:8b:86:2c:1b:bf:51"
-  #     - attach_workspace:
-  #         at: .circleci/ansible/
-  #     - run:
-  #         name: Install dependencies
-  #         command: |
-  #           apk add --update curl tar gzip ansible nodejs npm
-  #           pip install awscli
-  #     - run:
-  #         name: Deploy backend
-  #         no_output_timeout: 30m
-  #         command: |
-  #           echo "--- change dir to backend ----"
-  #           cd backend
-  #           echo "---- install dependency ----"
-  #           npm i
-  #           echo "--- build backend ---"
-  #           npm run build
-  #           echo "--- save env variable ---"
-  #           echo ENVIRONMENT=$ENVIRONMENT >> "/root/project/backend/.env"
-  #           echo NODE_ENV=production >> "/root/project/backend/.env"
-  #           echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> "/root/project/backend/.env"
-  #           echo TYPEORM_HOST=$TYPEORM_HOST >> "/root/project/backend/.env"
-  #           echo TYPEORM_PORT=$TYPEORM_PORT >> "/root/project/backend/.env"
-  #           echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "/root/project/backend/.env"
-  #           echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "/root/project/backend/.env"
-  #           echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "/root/project/backend/.env"
-  #           echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> "/root/project/backend/.env"
-  #           echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> "/root/project/backend/.env"
-  #           echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> "/root/project/backend/.env"
-  #           echo "--- list all files ---"
-  #           ls -lah
-  #           echo "--- list dist files ---"
-  #           ls ./dist
-  #           echo "--- compress backend file ---"
-  #           tar -czvf backend.tar.gz `ls -A -1`
-  #           echo "---- change dir ------"
-  #           cd ~/project/.circleci/ansible/
-  #           echo "--- run playbook ---"
-  #           ansible-playbook -i inventory.txt deploy-backend.yml
   deploy-backend:
     docker:
       - image: python:3.7-alpine3.11
@@ -439,19 +389,56 @@ jobs:
   #             return 1
   #           fi
 
-  smoke_test_frontend:
+  # smoke_test_frontend:
+  #   docker:
+  #     - image: python:3.7-alpine3.11
+  #   steps:
+  #     - attach_workspace:
+  #         at: ~/
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           apk add --update curl
+  #           pip install awscli
+  #     - run:
+  #         name: Package frontend app
+  #         command: |
+  #           if curl -s http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website.us-east-1.amazonaws.com/ | grep "Welcome"
+  #           then
+  #           return 0
+  #           else
+  #           return 1
+  #           fi
+  #     - destroy-environment:
+  #         workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
+
+  smoke-test:
     docker:
       - image: python:3.7-alpine3.11
     steps:
-      - attach_workspace:
-          at: ~/
+      - checkout
       - run:
           name: Install dependencies
           command: |
             apk add --update curl
             pip install awscli
+      - attach_workspace:
+          at: ~/
       - run:
-          name: Package frontend app
+          name: Get backend url
+          command: |
+            export BACKEND_URL=$(sed -n 2p .circleci/ansible/inventory.txt)
+      - run:
+          name: Backend smoke test.
+          command: |
+            if curl -s https://${BACKEND_URL}:3030/api/status
+            then
+            return 1
+            else
+            return 0
+            fi
+      - run:
+          name: Frontend smoke test
           command: |
             if curl -s http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website.us-east-1.amazonaws.com/ | grep "Welcome"
             then
@@ -459,26 +446,6 @@ jobs:
             else
             return 1
             fi
-      - destroy-environment:
-          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
-
-  smoke_test_backend:
-    docker:
-      - image: python:3.7-alpine3.11
-    steps:
-      - attach_workspace:
-          at: ~/
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update curl
-            pip install awscli
-      - run:
-          name: Test backend app.
-          command: |
-            API_URL=`cat .circleci/outputs/backend_url.txt`
-            echo $API_URL
-            curl -s $API_URL/api/status
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
       - revert-migrations:
@@ -554,10 +521,9 @@ workflows:
           requires: [build-frontend]
       - deploy-infrastructure:
           requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-      # filters:
-      #   branches:
-      #     only: [test-feature-branch]
-
+          # filters:
+          #   branches:
+          #     only: [test-feature-branch]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
       - run-migrations:
@@ -565,13 +531,10 @@ workflows:
       - deploy-frontend:
           requires: [run-migrations]
       - deploy-backend:
-          requires: [deploy-frontend, run-migrations]
-      # - smoke-test:
-      - smoke_test_frontend:
-          requires: [deploy-frontend]
-      - smoke_test_backend:
-          requires: [deploy-backend]
+          requires: [run-migrations]
+      - smoke-test:
+          requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
-          requires: [smoke_test_frontend, smoke_test_backend]
+          requires: [smoke-test]
       - cleanup:
           requires: [cloudfront-update]
