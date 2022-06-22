@@ -1,22 +1,18 @@
 ---
-- name: Creates directory
-  file:
-    path: /home/ubuntu/backend
-    state: directory
-
-- name: "Copy backend files to EC2 server."
+- name: Copy backend files
+  become: true
   copy:
-    src: /root/project/backend/backend.tar.gz
-    dest: /home/ubuntu/backend/backend.tar.gz
+    src: /home/backend.tar.gz
+    dest: /home/ubuntu/backend.tar.gz
 
-- name: "Install package dependencies"
+- name: Start PM2
   shell: |
-    cd /home/ubuntu/backend
+    cd /home/ubuntu/
     tar xzvf backend.tar.gz
-
-- name: Run the backend app
-  #become: true
-  shell: |
-    cd /home/ubuntu/backend
-    pm2 start npm --name backend -- start
-    pm2 ls
+    mv home/circleci/project/backend .
+    cd backend
+    sudo npm install -g npm@latest
+    sudo npm install -g webpack-dev-server
+    sudo npm install
+    sudo npm run build
+    sudo pm2 start npm --name backend -- start
