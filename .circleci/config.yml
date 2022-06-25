@@ -1,28 +1,43 @@
 version: 2.1
+
 orbs:
   slack: circleci/slack@4.10.1
   aws-cli: circleci/aws-cli@1.3.0
+
 parameters:
   workflow-id:
     type: string
     default: "${CIRCLE_WORKFLOW_ID}"
+
 commands:
-  create-dotenv-file:
-    description: Create .env file
+  write-env-variables:
+      description: Writes environment variables to env file
     steps:
       - run:
           name: Add env vars to .env file
           command: |
-            echo ENVIRONMENT=$ENVIRONMENT > "./backend/.env"
-            echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> "./backend/.env"
-            echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> "./backend/.env"
-            echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> "./backend/.env"
-            echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> "./backend/.env"
-            echo TYPEORM_HOST=$TYPEORM_HOST >> "./backend/.env"
-            echo TYPEORM_PORT=$TYPEORM_PORT >> "./backend/.env"
-            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "./backend/.env"
-            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "./backend/.env"
-            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "./backend/.env"
+            ls -la
+            echo ENVIROMENT=development > "backend/.env"
+            echo TYPEORM_CONNECTION=postgres >> "backend/.env"
+            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
+            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
+            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
+            echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
+            echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
+
+            # echo ENVIRONMENT=$ENVIRONMENT > "./backend/.env"
+            # echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> "./backend/.env"
+            # echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> "./backend/.env"
+            # echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> "./backend/.env"
+            # echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> "./backend/.env"
+            # echo TYPEORM_HOST=$TYPEORM_HOST >> "./backend/.env"
+            # echo TYPEORM_PORT=$TYPEORM_PORT >> "./backend/.env"
+            # echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "./backend/.env"
+            # echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "./backend/.env"
+            # echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "./backend/.env"
   dependencies:
     steps:
       - run:
@@ -56,6 +71,7 @@ commands:
             aws cloudformation delete-stack --stack-name udapeople-backend-<<parameters.workflow_id>>
             aws s3 rm s3://udapeople-<<parameters.workflow_id>> --recursive
             aws cloudformation delete-stack --stack-name udapeople-frontend-<<parameters.workflow_id>>
+  
   revert-migrations:
     parameters:
       workflow_id:
@@ -194,6 +210,7 @@ jobs:
       - run:
           name: Add back-end ip to ansible inventory
           command: |
+            echo "Adding backend ip to inventory"
             BACKEND_AWS_PUBLIC_IP=$(aws ec2 describe-instances \
               --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
@@ -209,23 +226,23 @@ jobs:
           paths:
             - project/.circleci/outputs/backend_url.txt
             - project/.circleci/ansible/inventory.txt
-      # - destroy-environment:
-      #     workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
+      - destroy-environment:
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
 
   configure-infrastructure:
     docker:
       - image: python:3.7-alpine3.11
-        environment:
-          NODE_ENV: "production"
-          VERSION: "1"
-          ENVIRONMENT: "production"
-          TYPEORM_CONNECTION: $TYPEORM_CONNECTION
-          TYPEORM_HOST: $TYPEORM_HOST
-          TYPEORM_USERNAME: $TYPEORM_USERNAME
-          TYPEORM_PASSWORD: $TYPEORM_PASSWORD
-          TYPEORM_DATABASE: $TYPEORM_DATABASE
-          TYPEORM_PORT: $TYPEORM_PORT
-          TYPEORM_ENTITIES: $TYPEORM_ENTITIES
+        # environment:
+        #   NODE_ENV: "production"
+        #   VERSION: "1"
+        #   ENVIRONMENT: "production"
+        #   TYPEORM_CONNECTION: $TYPEORM_CONNECTION
+        #   TYPEORM_HOST: $TYPEORM_HOST
+        #   TYPEORM_USERNAME: $TYPEORM_USERNAME
+        #   TYPEORM_PASSWORD: $TYPEORM_PASSWORD
+        #   TYPEORM_DATABASE: $TYPEORM_DATABASE
+        #   TYPEORM_PORT: $TYPEORM_PORT
+        #   TYPEORM_ENTITIES: $TYPEORM_ENTITIES
     steps:
       - checkout
       # Add ssh keys with fingerprint
@@ -239,21 +256,29 @@ jobs:
             apk add curl
             apk add --upgrade bash
             apk add --update ansible
+            echo "Ansible inventories >> Requires for the next job"
             apk add openssh-client
             pip3 install awscli
+      - write-env-variables
       - run:
           name: Configure server
+          no_output_timeout: 15m
           command: |
+            echo "Print directory"
+            ls -la
             # ls ~/project/.circleci/ansible/roles/deploy/files/
             cd ~/project/backend
             ansible-galaxy install weareinteractive.environment
             ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/configure-server.yml
-            # cat ~/project/.circleci/ansible/inventory.txt
-            # export ANSIBLE_HOST_KEY_CHECKING=False
-            # ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/configure-server.yml
-      # - destroy-environment:
-      #     workflow_id: '${CIRCLE_WORKFLOW_ID:0:7}'
-      # - undo_migrations
+      - run:
+          name: Install AWS CLI for rollback
+          when: on_fail
+          command: |
+            apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
+
+      - destroy-environment:
+          workflow_id: '${CIRCLE_WORKFLOW_ID:0:7}'
+
 
   run-migrations:
     docker:
@@ -267,12 +292,10 @@ jobs:
           name: Run migrations
           command: |
             cd backend
-            # cat .env
-            # npm i
-            # npm run build
             npm install
             npm run migrations > migrations_dump.txt
             cat migrations_dump.txt
+            # export migration_status=$(cat migration.log | grep -c "has been executed successfully")
       - run:
           name: Send migration results to memstash /kvdb
           command: |
@@ -286,14 +309,15 @@ jobs:
                 -H "X-Api-Key: ${THISDB_API_KEY}" \
                 -d "0"
             fi
-  #     - destroy-environment:
-  #         workflow_id: '${CIRCLE_WORKFLOW_ID:0:7}'
+      - destroy-environment:
+          workflow_id: '${CIRCLE_WORKFLOW_ID:0:7}'
 
   deploy-frontend:
     docker:
       - image: cimg/node:13.14.0
     steps:
       - checkout
+      - aws-cli/setup
       - restore_cache:
           keys:
             - build-frontend
@@ -302,10 +326,20 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            BACKEND_IP=$(aws cloudformation describe-stacks --stack-name udapeople-backend-"${CIRCLE_WORKFLOW_ID:0:7}" --query "Stacks[0].Outputs[0].OutputValue" --output text)
-            API_URL="http://${BACKEND_IP}:3030"
-            echo "API_URL=${API_URL}" >> frontend/.env
-
+            export BACKEND_IP=$(sed -n 2p .circleci/ansible/inventory.txt)
+            export API_URL="http://$(sed -n 2p .circleci/ansible/inventory.txt):3030"
+            echo "${API_URL}"
+            echo ENVIRONMENT=production > "frontend/.env"
+            echo NODE_ENV=production >> "frontend/.env"
+            echo API_URL=$API_URL >> "frontend/.env"          
+            # BACKEND_IP=$(aws cloudformation describe-stacks --stack-name udapeople-backend-"${CIRCLE_WORKFLOW_ID:0:7}" --query "Stacks[0].Outputs[0].OutputValue" --output text)
+            # API_URL="http://${BACKEND_IP}:3030"
+            # echo "API_URL=${API_URL}" >> frontend/.env
+      - run:
+          name: Build frontend
+          command: |
+            cd frontend
+            npm run build
       - run:
           name: Deploy frontend objects
           working_directory: ./frontend
@@ -333,8 +367,10 @@ jobs:
             apk add --update ansible openssh-client tar gzip
       - restore_cache:
           keys: ["backend-dist"] # -<< pipeline.id >>
+      - write-env-variables
       - run:
           name: Deploy backend
+          no_output_timeout: 10m
           command: |
             cd /home
             tar czf backend.tar.gz -P /home/circleci/project/backend/dist
@@ -352,6 +388,8 @@ jobs:
             apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
 
   smoke-test:
     docker:
@@ -398,26 +436,30 @@ jobs:
     steps:
       - checkout
       - dependencies
-      - run:
-          name: get old workflow for clean
-          command: |
-            OldWorkflowID=$(aws cloudformation \
-            list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
-            --no-paginate --output text)
-            curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
-            -H "X-Api-Key: ${THISDB_API_KEY}" \
-            -d "$OldWorkflowID"  
-            export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
-              --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
-            printf '%s\n' "${STACKS[@]}"
+      # - run:
+      #     name: get old workflow for clean
+      #     command: |
+      #       OldWorkflowID=$(aws cloudformation \
+      #       list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+      #       --no-paginate --output text)
+      #       curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
+      #       -H "X-Api-Key: ${THISDB_API_KEY}" \
+      #       -d "$OldWorkflowID"  
+      #       export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
+      #         --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
+      #       printf '%s\n' "${STACKS[@]}"
       - run:
           name: Updating cloudfront distribution
           command: |
-            aws cloudformation deploy \
-            --template-file .circleci/files/cloudfront.yml \
-            --stack-name InitialStack \
-            --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
-            --tags project=udapeople
+            aws cloudformation update-stack \
+            --use-previous-template \
+            --stack-name "udapeople-cloudfront" \
+            --parameters ParameterKey=WorkflowID,ParameterValue=${CIRCLE_WORKFLOW_ID:0:7} 
+            # aws cloudformation deploy \
+            # --template-file .circleci/files/cloudfront.yml \
+            # --stack-name InitialStack \
+            # --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
+            # --tags project=udapeople
 
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
