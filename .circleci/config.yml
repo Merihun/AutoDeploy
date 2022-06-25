@@ -316,7 +316,7 @@ jobs:
       - image: cimg/node:13.14.0
     steps:
       - checkout
-      - aws-cli/setup
+      # - aws-cli/setup
       - restore_cache:
           keys:
             - build-frontend
@@ -348,8 +348,8 @@ jobs:
             npm run build
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist "s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7}" --recursive
-      - destroy-environment:
-          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
+      # - destroy-environment:
+      #     workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
 
   deploy-backend:
     docker:
