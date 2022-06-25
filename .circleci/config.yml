@@ -435,30 +435,30 @@ jobs:
     steps:
       - checkout
       - dependencies
-      # - run:
-      #     name: get old workflow for clean
-      #     command: |
-      #       OldWorkflowID=$(aws cloudformation \
-      #       list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
-      #       --no-paginate --output text)
-      #       curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
-      #       -H "X-Api-Key: ${THISDB_API_KEY}" \
-      #       -d "$OldWorkflowID"
-      #       export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
-      #         --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
-      #       printf '%s\n' "${STACKS[@]}"
+      - run:
+          name: get old workflow for clean
+          command: |
+            OldWorkflowID=$(aws cloudformation \
+            list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+            --no-paginate --output text)
+            curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
+            -H "X-Api-Key: ${THISDB_API_KEY}" \
+            -d "$OldWorkflowID"
+            export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
+              --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
+            printf '%s\n' "${STACKS[@]}"
       - run:
           name: Updating cloudfront distribution
           command: |
-            aws cloudformation update-stack \
-            --use-previous-template \
-            --stack-name "udapeople-cloudfront" \
-            --parameters ParameterKey=WorkflowID,ParameterValue=${CIRCLE_WORKFLOW_ID:0:7} 
-            # aws cloudformation deploy \
-            # --template-file .circleci/files/cloudfront.yml \
-            # --stack-name InitialStack \
-            # --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
-            # --tags project=udapeople
+            # aws cloudformation update-stack \
+            # --use-previous-template \
+            # --stack-name "udapeople-cloudfront" \
+            # --parameters ParameterKey=WorkflowID,ParameterValue=${CIRCLE_WORKFLOW_ID:0:7} 
+            aws cloudformation deploy \
+            --template-file .circleci/files/cloudfront.yml \
+            --stack-name InitialStack \
+            --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
+            --tags project=udapeople
 
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
@@ -517,5 +517,5 @@ workflows:
           requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
           requires: [smoke-test]
-      - cleanup:
-          requires: [cloudfront-update]
+      # - cleanup:
+      #     requires: [cloudfront-update]
