@@ -137,7 +137,7 @@ jobs:
           name: Back-end build
           command: |
             cd backend
-            cat .env
+            # cat .env
             npm install
             npm run build
       - save_cache:
