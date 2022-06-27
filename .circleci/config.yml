@@ -331,16 +331,24 @@ jobs:
       - run:
           name: Send migration results to memstash /kvdb
           command: |
-            if grep -q "has been executed successfully"  ./backend/migrations_dump.txt   
+            cd backend
+            if grep -q "has been executed successfully." migrations_dump.txt
             then
-              curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
-                -H "X-Api-Key: ${THISDB_API_KEY}" \
-                -d "1"
-            else
-              curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
-                -H "X-Api-Key: ${THISDB_API_KEY}" \
-                -d "0"
-            fi
+              touch ~/project/.circleci/outputs/db_migration_success
+              echo "Migration was executed successfully" > db_migration_success
+              cat db_migration_success
+            fi    
+
+            # if grep -q "has been executed successfully"  ./backend/migrations_dump.txt   
+            # then
+            #   curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
+            #     -H "X-Api-Key: ${THISDB_API_KEY}" \
+            #     -d "1"
+            # else
+            #   curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
+            #     -H "X-Api-Key: ${THISDB_API_KEY}" \
+            #     -d "0"
+            # fi
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
 
@@ -427,17 +435,18 @@ jobs:
       - run:
           name: Build frontend
           command: |
+            pwd
             echo ENVIRONMENT=production > "frontend/.env"
             echo NODE_ENV=production >> "frontend/.env"
             cd frontend
+            npm i
+            npm audit fix
             npm run build
       - run:
           name: Deploy frontend objects
           working_directory: ./frontend
           command: |
-            npm i
-            npm audit fix
-            npm run build
+            pwd
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist "s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7}" --recursive
   # - destroy-environment:
@@ -464,6 +473,7 @@ jobs:
           name: Deploy backend
           no_output_timeout: 10m
           command: |
+            pwd
             cd /home
             tar czf backend.tar.gz -P /home/circleci/project/backend/dist
       - run:
@@ -541,6 +551,7 @@ jobs:
       - run:
           name: Backend smoke test.
           command: |
+            pwd
             if curl -s https://${BACKEND_URL}:3030/api/status
             then
               return 1
@@ -570,6 +581,7 @@ jobs:
       - run:
           name: get old workflow for clean
           command: |
+            pwd
             OldWorkflowID=$(aws cloudformation \
             list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
             --no-paginate --output text)
@@ -607,6 +619,7 @@ jobs:
       - run:
           name: Remove old stacks and files
           command: |
+            pwd
             export OldWorkflowID=$(aws cloudformation \
               list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
               --no-paginate --output text)
