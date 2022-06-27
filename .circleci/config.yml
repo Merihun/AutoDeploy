@@ -64,24 +64,37 @@ commands:
             sudo add-apt-repository --yes --update ppa:ansible/ansible
             sudo apt install ansible
 
+  # revert-migrations:
+  #   parameters:
+  #     workflow_id:
+  #       type: string
+  #   steps:
+  #     - run:
+  #         name: Reverting migrations
+  #         when: on_fail
+  #         command: |
+  #           SUCCESS=$(curl "https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_<<parameters.workflow_id>>" -H "X-Api-Key: ${THISDB_API_KEY}")
+  #           if (($SUCCESS == 1)); then
+  #             cd backend
+  #             npm install
+  #             npm run migrations:revert
+  #           fi
   revert-migrations:
+    description: Revert the last migration if successfully run in the current workflow.
     parameters:
       workflow_id:
         type: string
     steps:
       - run:
-          name: Reverting migrations
+          name: Revert migrations
           when: on_fail
           command: |
-            SUCCESS=$(curl "https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_<<parameters.workflow_id>>" -H "X-Api-Key: ${THISDB_API_KEY}")
-            if (($SUCCESS == 1)); then
-              cd backend
-              npm install
-              npm run migrations:revert
+            cd ~/project/backend
+            if [[ -f "~/project/.circleci/outputs/db_migration_success" ]]; then
+              npm i
+              npm run migration:revert
             fi
-
 jobs:
-  #1. Build Phase
   build-frontend:
     docker:
       - image: circleci/node:13.8.0
@@ -107,13 +120,11 @@ jobs:
       - restore_cache:
           keys: [backend-build]
       - run:
-          name: Back-end build
+          name: Build back-end
           command: |
             cd backend
-            # cat .env
             npm install
             npm run build
-            # cp .env dist/.env
             pwd && ls -al
       - save_cache:
           paths: [backend/node_modules]
@@ -268,6 +279,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
+            pwd
             apk add curl
             apk add --upgrade bash
             apk add --update ansible
@@ -279,6 +291,7 @@ jobs:
           name: Configure server
           no_output_timeout: 15m
           command: |
+            pwd
             echo "Print directory"
             ls -la
             # ls ~/project/.circleci/ansible/roles/deploy/files/
@@ -307,15 +320,14 @@ jobs:
           name: Run migrations
           no_output_timeout: 20m
           command: |
+            pwd
             cd backend
             cat .env
             npm install
             npm run build
-            # npm audit fix --audit-level=critical --force
             npm run migrations > migrations_dump.txt
             cat migrations_dump.txt
-            # echo NODE_ENV=production >> .env
-            # export migration_status=$(cat migration.log | grep -c "has been executed successfully")
+
       - run:
           name: Send migration results to memstash /kvdb
           command: |
