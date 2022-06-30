@@ -33,7 +33,7 @@
 - name: Build
   become: true
   shell: |
-    cd backend
+    cd /home/ubuntu/backend
     ls -la
     npm install -g npm@latest
     # npm install -g webpack-dev-server
