@@ -35,6 +35,7 @@ commands:
           name: Add env vars to .env file
           command: |
             ls -la
+            echo $ENVIRONMENT
             echo ENVIRONMENT=$ENVIRONMENT > "./backend/.env"
             echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> "./backend/.env"
             echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> "./backend/.env"
@@ -129,37 +130,7 @@ jobs:
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
-  # build-backend:
-  #   docker:
-  #     - image: circleci/node:13.8.0
-  #   steps:
-  #     - checkout
-  #     # - restore_cache:
-  #     #     keys: [backend-build]
-  #     - run:
-  #         name: Back-end build
-  #         command: |
-  #           # Your code here
-  #           cd backend
-  #           sudo npm i
-  #           npm run build
-  #     - save_cache:
-  #         key: backend-build
-  #         paths:
-  #           - ./backend/node_modules
-  #     - run:
-  #         name: Compiled code will be retrieved by deploy-backend.yml
-  #         command: |
-  #           mkdir /tmp/workspace/
-  #           cp ./backend/package.json /tmp/workspace/
-  #           cd backend/dist
-  #           tar -zcvf /tmp/workspace/backend.tar.gz ./
-  #           tar -zcvf ./../../backend.tar.gz ./
-  #     - persist_to_workspace:
-  #         root: /tmp/workspace
-  #         paths:
-  #           - package.json
-  #           - backend.tar.gz
+
   #2. Test Phase
   test-frontend:
     docker:
@@ -307,51 +278,117 @@ jobs:
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
 
+  # run-migrations:
+  #   docker:
+  #     - image: sleavely/node-awscli:14.x
+  #   steps:
+  #     - checkout # Checkout code from git
+  #     - restore_cache:
+  #         keys:
+  #           - build-backend
+  #     - write-env-variables
+  #     - run:
+  #         name: Run migrations
+  #         no_output_timeout: 20m
+  #         command: |
+  #           pwd
+  #           cd backend
+  #           cat .env
+  #           npm install
+  #           npm run build
+  #           npm run migrations > migrations_dump.txt
+  #           cat migrations_dump.txt
+
+  #     - run:
+  #         name: Send migration results to memstash /kvdb
+  #         command: |
+  #           cd backend
+  #           if grep -q "has been executed successfully." migrations_dump.txt
+  #           then
+  #             touch ~/project/.circleci/outputs/db_migration_success
+  #             echo "Migration was executed successfully" > db_migration_success
+  #             cat db_migration_success
+  #           fi
+
+  #           # if grep -q "has been executed successfully"  ./backend/migrations_dump.txt
+  #           # then
+  #           #   curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
+  #           #     -H "X-Api-Key: ${THISDB_API_KEY}" \
+  #           #     -d "1"
+  #           # else
+  #           #   curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
+  #           #     -H "X-Api-Key: ${THISDB_API_KEY}" \
+  #           #     -d "0"
+  #           # fi
+  #     - destroy-environment:
+  #         workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
   run-migrations:
     docker:
-      - image: sleavely/node-awscli:14.x
+      - image: python:3.9.1-alpine3.12
     steps:
-      - checkout # Checkout code from git
-      - restore_cache:
-          keys:
-            - build-backend
-      - write-env-variables
+      - checkout
       - run:
-          name: Run migrations
-          no_output_timeout: 20m
+          name: Install dependencies
           command: |
-            pwd
-            cd backend
+            apk add --update ansible tar gzip ansible nodejs npm curl
+            pip install awscli
+      - run:
+          name: run and save migration
+          working_directory: ./backend
+          command: |
+            echo "BUILDING THE BACKEND ENVIRONMENT FILE FOR POSTGRES MIGRATIONS"
+            echo ENVIROMENT=production > .env
+            echo TYPEORM_CONNECTION=postgres >> .env
+            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> .env
+            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> .env
+            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> .env
+            echo TYPEORM_HOST=database-2.crcmxnn6pmse.us-west-1.rds.amazonaws.com >> .env
+            echo TYPEORM_PORT=5432 >> .env
+            echo TYPEORM_USERNAME=postgres >> .env
+            echo TYPEORM_PASSWORD=password >> .env
+            echo TYPEORM_DATABASE=prasad >> .env
+            ls -latr
             cat .env
-            npm install
-            npm run build
-            npm run migrations > migrations_dump.txt
-            cat migrations_dump.txt
+            echo "INSTALLING NPM MODULE DEPENDENCIES"
+            npm i > npminstall.log
+            echo "INSTALLING OATH-SIGN PACKAGE"
+            npm install oauth-sign >> npminstall.log
 
+            echo "HOST: " $TYPEORM_HOST
+            echo "PWD: " $(pwd)
+            echo $TYPEORM_DATABASE
+
+            npm run migrations:revert
+            echo "RUNNING POSTGRES DATABASE MIGRATIONS"
+            npm run migrations > migration.log
+            MIGRATION_LOG=/root/project/backend/migration.log
+            if test -f "$MIGRATION_LOG"; then
+                echo "$MIGRATION_LOG exists."
+            fi
+            echo "Output of the migration log"
+            cat migration.log
       - run:
-          name: Send migration results to memstash /kvdb
+          name: Send results to memstash
+          working_directory: ./backend
           command: |
-            cd backend
-            if grep -q "has been executed successfully." migrations_dump.txt
-            then
-              touch ~/project/.circleci/outputs/db_migration_success
-              echo "Migration was executed successfully" > db_migration_success
-              cat db_migration_success
-            fi    
 
-            # if grep -q "has been executed successfully"  ./backend/migrations_dump.txt   
-            # then
-            #   curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
-            #     -H "X-Api-Key: ${THISDB_API_KEY}" \
-            #     -d "1"
-            # else
-            #   curl https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_${CIRCLE_WORKFLOW_ID:0:7} \
-            #     -H "X-Api-Key: ${THISDB_API_KEY}" \
-            #     -d "0"
-            # fi
-      - destroy-environment:
-          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
-
+            ## Check current working DIR and check contents
+            MIGRATION_LOG=/root/project/backend/migration.log
+            if test -f "$MIGRATION_LOG"; then
+                echo "$MIGRATION_LOG exists."
+            fi
+            if grep -q "has been executed successfully" $MIGRATION_LOG; then
+              echo "SUCCESSFULLY EXECUTED THE DATABASE MIGRATIONS"
+              echo "Writing out to memstash : https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}"
+              curl -H "Content-Type: text/plain" -H "token: sjgt270867" --request PUT \
+                --data "Migration successful" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}
+            else
+              echo "FAILED TO RUN THE DATABASE MIGRATIONS"
+              echo "Writing out to memstash : https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}"
+              curl -H "Content-Type: text/plain" -H "token: sjgt270867" --request PUT \
+                --data "Migration failed" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}
+              exit 1
+            fi
   # deploy-frontend:
   #   docker:
   #     # Docker image here that supports AWS CLI
@@ -422,22 +459,18 @@ jobs:
             export BACKEND_IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
-            echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+            echo API_URL="http://${BACKEND_IP}:3030" > frontend/.env
+            echo ENVIRONMENT=production >> "frontend/.env"
+            echo NODE_ENV=production >> "frontend/.env"
+            echo "Display content of frontend/.env"
             cat frontend/.env
-
-            # export BACKEND_IP=$(sed -n 2p .circleci/ansible/inventory.txt)
-            # export API_URL="http://$(sed -n 2p .circleci/ansible/inventory.txt):3030/api/status"
-            # echo "${API_URL}"
-            # export API_URL="http://${BACKEND_ip}:3030"
-            # echo API_URL=$API_URL >> "frontend/.env"
-            # cat frontend/.env
 
       - run:
           name: Build frontend
           command: |
             pwd
-            echo ENVIRONMENT=production > "frontend/.env"
-            echo NODE_ENV=production >> "frontend/.env"
+            echo "Display again content of frontend/.env"
+            cat frontend/.env
             cd frontend
             npm i
             npm audit fix
