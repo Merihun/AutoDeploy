@@ -74,7 +74,7 @@ commands:
           name: Reverting migrations
           when: on_fail
           command: |
-            SUCCESS=$(curl --insecure https://kvdb.io/D4iWiEhExxPtYxYMVPp3pq//migration_<<parameters.workflow_id>>")
+            SUCCESS=$(curl --insecure https://kvdb.io/D4iWiEhExxPtYxYMVPp3pq//migration_<<parameters.workflow_id>>)
             if (($SUCCESS == 1)); then
               cd backend
               npm install
@@ -519,7 +519,7 @@ jobs:
             pip3 install awscli
       - restore_cache:
           keys: ["backend-dist"] # -<< pipeline.id >>
-      - write-env-variables
+      # - write-env-variables
       - run:
           name: Deploy backend
           no_output_timeout: 10m
