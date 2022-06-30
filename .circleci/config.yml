@@ -522,6 +522,8 @@ jobs:
           name: Deploy backend
           no_output_timeout: 10m
           command: |
+            pwd
+            cd backend
             npm i
             npm run build
             pwd
