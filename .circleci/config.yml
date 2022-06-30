@@ -336,7 +336,8 @@ jobs:
 
   run-migrations:
     docker:
-      - image: python:3.9.1-alpine3.12
+      # - image: python:3.9.1-alpine3.12
+      - image: circleci/node:13.8.0
     steps:
       - checkout
       - run:
@@ -478,14 +479,20 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            export BACKEND_IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
-            export API_URL="http://${BACKEND_IP}:3030"
-            echo "${API_URL}"
-            echo API_URL="http://${BACKEND_IP}:3030" > frontend/.env
-            echo ENVIRONMENT=production >> "frontend/.env"
-            echo NODE_ENV=production >> "frontend/.env"
-            echo "Display content of frontend/.env"
+            export BACKEND_DNS=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName' --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --output text)
+            export API_URL="http://${BACKEND_DNS}:3030"
+            echo "API_URL = ${API_URL}"
+            echo API_URL="http://${BACKEND_DNS}:3030" >> frontend/.env
             cat frontend/.env
+
+            # export BACKEND_IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
+            # export API_URL="http://${BACKEND_IP}:3030"
+            # echo "${API_URL}"
+            # echo API_URL="http://${BACKEND_IP}:3030" > frontend/.env
+            # echo ENVIRONMENT=production >> "frontend/.env"
+            # echo NODE_ENV=production >> "frontend/.env"
+            # echo "Display content of frontend/.env"
+            # cat frontend/.env
 
       - run:
           name: Build frontend
@@ -528,6 +535,8 @@ jobs:
           name: Deploy backend
           no_output_timeout: 10m
           command: |
+            npm i
+            npm run build
             pwd
             cd /home
             tar czf backend.tar.gz -P /home/circleci/project/backend/dist
