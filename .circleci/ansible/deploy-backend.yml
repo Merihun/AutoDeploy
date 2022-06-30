@@ -24,17 +24,17 @@
       wait_for:
         port: 22
         delay: 10
-  environment:
-    NODE_ENV: "{{ lookup('env','NODE_ENV') }}"
-    VERSION: "{{ lookup('env','VERSION') }}"
-    ENVIRONMENT: "{{ lookup('env','ENVIRONMENT') }}"
-    TYPEORM_CONNECTION: "{{ lookup('env','TYPEORM_CONNECTION') }}"
-    TYPEORM_HOST: "{{ lookup('env','TYPEORM_HOST') }}"
-    TYPEORM_USERNAME: "{{ lookup('env','TYPEORM_USERNAME') }}"
-    TYPEORM_PASSWORD: "{{ lookup('env','TYPEORM_PASSWORD') }}"
-    TYPEORM_DATABASE: "{{ lookup('env','TYPEORM_DATABASE') }}"
-    TYPEORM_PORT: "{{ lookup('env','TYPEORM_PORT') }}"
-    TYPEORM_ENTITIES: "{{ lookup('env','TYPEORM_ENTITIES') }}"
+  # environment:
+  #   NODE_ENV: "{{ lookup('env','NODE_ENV') }}"
+  #   VERSION: "{{ lookup('env','VERSION') }}"
+  #   ENVIRONMENT: "{{ lookup('env','ENVIRONMENT') }}"
+  #   TYPEORM_CONNECTION: "{{ lookup('env','TYPEORM_CONNECTION') }}"
+  #   TYPEORM_HOST: "{{ lookup('env','TYPEORM_HOST') }}"
+  #   TYPEORM_USERNAME: "{{ lookup('env','TYPEORM_USERNAME') }}"
+  #   TYPEORM_PASSWORD: "{{ lookup('env','TYPEORM_PASSWORD') }}"
+  #   TYPEORM_DATABASE: "{{ lookup('env','TYPEORM_DATABASE') }}"
+  #   TYPEORM_PORT: "{{ lookup('env','TYPEORM_PORT') }}"
+  #   TYPEORM_ENTITIES: "{{ lookup('env','TYPEORM_ENTITIES') }}"
   roles:
     - deploy
     # - configure-prometheus-node-exporter
