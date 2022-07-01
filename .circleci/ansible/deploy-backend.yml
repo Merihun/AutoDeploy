@@ -24,17 +24,29 @@
       wait_for:
         port: 22
         delay: 10
-  # environment:
-  #   NODE_ENV: "{{ lookup('env','NODE_ENV') }}"
-  #   VERSION: "{{ lookup('env','VERSION') }}"
-  #   ENVIRONMENT: "{{ lookup('env','ENVIRONMENT') }}"
-  #   TYPEORM_CONNECTION: "{{ lookup('env','TYPEORM_CONNECTION') }}"
-  #   TYPEORM_HOST: "{{ lookup('env','TYPEORM_HOST') }}"
-  #   TYPEORM_USERNAME: "{{ lookup('env','TYPEORM_USERNAME') }}"
-  #   TYPEORM_PASSWORD: "{{ lookup('env','TYPEORM_PASSWORD') }}"
-  #   TYPEORM_DATABASE: "{{ lookup('env','TYPEORM_DATABASE') }}"
-  #   TYPEORM_PORT: "{{ lookup('env','TYPEORM_PORT') }}"
-  #   TYPEORM_ENTITIES: "{{ lookup('env','TYPEORM_ENTITIES') }}"
+  environment:
+    # NODE_ENV=production
+    # ENVIROMENT=production
+    # TYPEORM_CONNECTION=postgres
+    # TYPEORM_MIGRATIONS_DIR=./src/migrations
+    # TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts
+    # TYPEORM_MIGRATIONS=./src/migrations/*.ts
+    # TYPEORM_HOST=database-1.crdvki0lcqni.us-east-1.rds.amazonaws.com
+    # TYPEORM_PORT=5432
+    # TYPEORM_USERNAME=postgres
+    # TYPEORM_PASSWORD=password
+    # TYPEORM_DATABASE=postgres
+
+    # NODE_ENV: "{{ lookup('env','NODE_ENV') }}"
+    # VERSION: "{{ lookup('env','VERSION') }}"
+    # ENVIRONMENT: "{{ lookup('env','ENVIRONMENT') }}"
+    # TYPEORM_CONNECTION: "{{ lookup('env','TYPEORM_CONNECTION') }}"
+    # TYPEORM_HOST: "{{ lookup('env','TYPEORM_HOST') }}"
+    # TYPEORM_USERNAME: "{{ lookup('env','TYPEORM_USERNAME') }}"
+    # TYPEORM_PASSWORD: "{{ lookup('env','TYPEORM_PASSWORD') }}"
+    # TYPEORM_DATABASE: "{{ lookup('env','TYPEORM_DATABASE') }}"
+    # TYPEORM_PORT: "{{ lookup('env','TYPEORM_PORT') }}"
+    # TYPEORM_ENTITIES: "{{ lookup('env','TYPEORM_ENTITIES') }}"
   roles:
     - deploy
     # - configure-prometheus-node-exporter
