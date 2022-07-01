@@ -1,5 +1,5 @@
 [URL01]: https://github.com/Merihun/AutoDeploy.git
-[URL02]: http://udapeople-caabdcd.s3-website-us-east-1.amazonaws.com
+[URL02]: http://udapeople-9d7072f.s3-website-us-east-1.amazonaws.com/#/employees
 [URL03]: http://dbxijej0y3i2k.cloudfront.net
 [URL04]: http://ec2-3-85-124-12.compute-1.amazonaws.com:3030/api/status
 [URL05]: http://ec2-44-202-72-231.compute-1.amazonaws.com:9090/targets
