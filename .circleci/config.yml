@@ -531,6 +531,7 @@ jobs:
             cd /root/project/backend
             npm i
             echo ENVIROMENT=production > ".env"
+            echo NODE_ENV=production >> ".env"
             echo TYPEORM_CONNECTION=postgres >> ".env"
             echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> ".env"
             echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> ".env"
