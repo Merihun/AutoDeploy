@@ -521,10 +521,10 @@ jobs:
           keys: ["backend-dist"] # -<< pipeline.id >>
       # - write-env-variables
       - run:
-        name: install node modules
-        command: |
-          cd /root/project/backend
-          npm install
+          name: install node modules
+          command: |
+            cd /root/project/backend
+            npm install
       - run:
           name: build backend dist
           command: |
