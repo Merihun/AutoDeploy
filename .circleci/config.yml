@@ -521,10 +521,20 @@ jobs:
           keys: ["backend-dist"] # -<< pipeline.id >>
       # - write-env-variables
       - run:
-          name: Deploy backend
-          no_output_timeout: 10m
+        name: install node modules
+        command: |
+          cd /root/project/backend
+          npm install
+      - run:
+          name: build backend dist
           command: |
-            echo ENVIRONMENT=$ENVIRONMENT > "./backend/.env"
+            cd /root/project/backend
+            npm i
+      # - run:
+      #     name: Deploy backend
+      #     no_output_timeout: 10m
+      #     command: |
+            echo ENVIRONMENT=production > "./backend/.env"
             echo NODE_ENV=production
             echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> "./backend/.env"
             echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> "./backend/.env"
@@ -535,16 +545,27 @@ jobs:
             echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "./backend/.env"
             echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "./backend/.env"
             echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "./backend/.env"
-            pwd
-            cd backend
-            npm i
+
+            # cd backend
+            # npm i
             npm run build
-            pwd
-            # Zip the directory
-            cd /home
-            tar czf backend.tar.gz -P /home/circleci/project/backend/dist
+            # pwd
+            # # Zip the directory
+            # cd /home
+            # tar czf backend.tar.gz -P /home/circleci/project/backend/dist
       - run:
-          name: Deploy backend 2
+          name: build zip file
+          command: |
+            cd /root/project/
+            tar -zcvf api.tar.gz backend/
+            mv api.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
+      - run:
+          name: add ansible config
+          command: |
+            echo "[ssh_connection]" > ansible.cfg
+            echo "scp_if_ssh=True" >> ansible.cfg
+      - run:
+          name: Deploy backend 
           command: |
             export ANSIBLE_HOST_KEY_CHECKING=False
             ansible-playbook \
@@ -555,6 +576,7 @@ jobs:
           when: on_fail
           command: |
             apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
+            pwd
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
       - revert-migrations:
